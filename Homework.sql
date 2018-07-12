@@ -72,7 +72,7 @@ SELECT first_name, last_name
 FROM actor
 WHERE first_name = 'HARPO';  -- have no idea what is this mean.....
 
--- 5 a You cannot locate the schema of the address table. Which query would you use to re-create it?
+-- You cannot locate the schema of the address table. Which query would you use to re-create it?
 SHOW CREATE TABLE address;          -- not sure..... 
 
 -- Use JOIN to display the first and last names, as well as the address, of each staff member. Use the tables staff and address
@@ -80,7 +80,7 @@ SELECT first_name, last_name, address
 FROM staff
 INNER JOIN address ON staff.address_id = address.address_id;
 
--- 6b Use JOIN to display the total amount rung up by each staff member in August of 2005. Use tables staff and payment.
+-- Use JOIN to display the total amount rung up by each staff member in August of 2005. Use tables staff and payment.
 DESCRIBE payment;
 SELECT * FROM payment;
 
@@ -103,12 +103,12 @@ WHERE film_id IN
 -- 6e, Using the tables payment and customer and the JOIN command, list the total paid by each customer. List the customers alphabetically by last name:
 DESCRIBE customer; -- last_name, 
 DESCRIBE payment; -- customer id common  amount
-SELECT SUM(amount) AS 'Total Paid', last_name
+SELECT  customer.first_name, customer.last_name, SUM(amount) AS 'Total Paid'
 FROM payment
 INNER JOIN customer ON customer.customer_id = payment.customer_id
-GROUP BY last_name;
+GROUP BY last_name, first_name;
 
--- 7a. The music of Queen and Kris Kristofferson have seen an unlikely resurgence. 
+--  The music of Queen and Kris Kristofferson have seen an unlikely resurgence. 
 -- As an unintended consequence, films starting with the letters K and Q have also soared in popularity. 
 -- Use subqueries to display the titles of movies starting with the letters K and Q whose language is English.
 SELECT title, language_id
@@ -152,22 +152,39 @@ WHERE address_id IN
 		)
 	);
 
--- Sales have been lagging among young families, and you wish to target all family movies for a promotion. 
+-- 7d Sales have been lagging among young families, and you wish to target all family movies for a promotion. 
 -- Identify all movies categorized as famiy films.
-SELECT *
+SELECT title
 FROM film
-WHERE rating = 'G' or rating = 'PG';
+WHERE film_id IN
+	(
+    SELECT film_id 
+    FROM film_category
+    WHERE category_id IN
+		(
+        SELECT category_id
+        FROM category
+        WHERE name = 'Family'
+		)
+	);
+    
+    
+--  7e. Display the most frequently rented movies in descending order.
+SELECT count(title), title
+FROM film f
+JOIN inventory i ON i.film_id = f.film_id
+JOIN rental r ON r.inventory_id = i.inventory_id
+GROUP BY title
+ORDER BY count(title) DESC; 
 
---  Display the most frequently rented movies in descending order.
-SELECT *
-FROM film
-ORDER BY rental_duration DESC; 
+--  7f. Write a query to display how much business, in dollars, each store brought in.
+SELECT SUM(amount) AS 'Total Revenue', s.store_id
+FROM payment p 
+JOIN rental r ON r.rental_id = p.rental_id
+JOIN inventory i ON i.inventory_id=r.inventory_id
+JOIN store s ON s.store_id = i.store_id
+GROUP BY s.store_id;
 
---  Write a query to display how much business, in dollars, each store brought in.
-SELECT SUM(amount) AS 'Total Revenue', staff_id
-FROM payment
-INNER JOIN store ON store.manager_staff_id = payment.staff_id
-GROUP BY staff_id;
 
 --  Write a query to display for each store its store ID, city, and country.
 SELECT store.store_id, address.address, city.city, country.country
@@ -176,16 +193,16 @@ INNER JOIN address ON address.address_id = store.address_id
 INNER JOIN city ON city.city_id = address.city_id
 INNER JOIN country ON city.country_id = country.country_id;
 
--- List the top five genres in gross revenue in descending order. 
+-- 7h. List the top five genres in gross revenue in descending order. 
 -- (Hint: you may need to use the following tables: category, film_category, inventory, payment, and rental.)
 
- SELECT sum(amount) AS 'Revenue', category.category_id
+ SELECT sum(amount) AS 'Revenue', category.name
 FROM payment
 INNER JOIN rental on rental.rental_id = payment.rental_id
 INNER JOIN inventory on inventory.inventory_id = rental.inventory_id
 INNER JOIN film_category on film_category.film_id = inventory.film_id
 INNER JOIN category ON film_category.category_id = category.category_id
-GROUP BY category_id
+GROUP BY category.category_id
 ORDER BY Revenue DESC
 LIMIT 5;
 
@@ -194,21 +211,21 @@ select * from category;
 -- 8a. In your new role as an executive, you would like to have an easy way of viewing the Top five genres by gross revenue. 
 -- Use the solution from the problem above to create a view. If you haven't solved 7h, you can substitute another query to create a view.
 CREATE VIEW top_5_category AS
-SELECT sum(amount) AS 'Revenue', category.category_id
+SELECT sum(amount) AS 'Revenue', category.name
 FROM payment
 INNER JOIN rental on rental.rental_id = payment.rental_id
 INNER JOIN inventory on inventory.inventory_id = rental.inventory_id
 INNER JOIN film_category on film_category.film_id = inventory.film_id
 INNER JOIN category ON film_category.category_id = category.category_id
-GROUP BY category_id
+GROUP BY category.category_id
 ORDER BY Revenue DESC
 LIMIT 5;
 
---  How would you display the view that you created in 8a?
+--  8b How would you display the view that you created in 8a?
 SELECT * 
 FROM sakila.top_5_category;
 
--- You find that you no longer need the view top_five_genres. Write a query to delete it.
+-- 8c You find that you no longer need the view top_five_genres. Write a query to delete it.
 DROP VIEW top_5_category;
 
 
